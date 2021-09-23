@@ -1,0 +1,1 @@
+# strapi-fargate-with-aurora-serverless
