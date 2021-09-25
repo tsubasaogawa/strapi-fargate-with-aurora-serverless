@@ -100,6 +100,27 @@ resource "aws_security_group" "rds" {
   }
 }
 
+resource "aws_security_group" "task" {
+  vpc_id = aws_vpc.this.id
+  name   = "${local.name}-task-security-group"
+
+  ingress {
+    protocol  = "tcp"
+    from_port = 1337
+    to_port   = 1337
+    cidr_blocks = [
+      local.vpc.cidr_block
+    ]
+  }
+
+  egress {
+    protocol    = "-1"
+    from_port   = 0
+    to_port     = 0
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_db_subnet_group" "this" {
   name       = "${local.name}-rds-subnet-group"
   subnet_ids = values(aws_subnet.private)[*].id
@@ -130,4 +151,89 @@ resource "aws_rds_cluster" "this" {
       master_password,
     ]
   }
+}
+
+resource "aws_ecs_cluster" "this" {
+  name               = "${local.name}-cluster"
+  capacity_providers = ["FARGATE_SPOT"]
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+}
+
+resource "aws_ecs_task_definition" "this" {
+  family                   = local.name
+  execution_role_arn       = aws_iam_role.task_execution.arn
+  cpu                      = 256
+  memory                   = 512
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  container_definitions = jsonencode([
+    {
+      name  = local.name
+      image = aws_ecr_repository.this.repository_url
+      environment = [
+        {
+          name  = "DATABASE_CLIENT"
+          value = "mysql"
+        },
+        {
+          name  = "DATABASE_HOST"
+          value = "mysql"
+        },
+        {
+          name  = "DATABASE_PORT"
+          value = "3306"
+        },
+        {
+          name  = "DATABASE_NAME"
+          value = "strapi"
+        },
+        {
+          name  = "DATABASE_USERNAME"
+          value = "strapi"
+        },
+        {
+          name  = "DATABASE_PASSWORD"
+          value = var.master_password
+        },
+        {
+          name  = "DATABASE_SSL"
+          value = "false"
+        }
+      ]
+      essential = true
+      portMappings = [
+        {
+          containerPort = 1337
+        }
+      ]
+    }
+  ])
+}
+
+data "aws_iam_policy_document" "task_execution" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type = "Service"
+      identifiers = [
+        "ecs-tasks.amazonaws.com",
+      ]
+    }
+  }
+}
+resource "aws_iam_role" "task_execution" {
+  name = "${local.name}-task-execution-role"
+  # tags               = var.tags
+  description        = "Execution role of ${local.name}'s task"
+  assume_role_policy = data.aws_iam_policy_document.task_execution.json
+}
+
+resource "aws_iam_role_policy_attachment" "task_execution" {
+  role       = aws_iam_role.task_execution.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
