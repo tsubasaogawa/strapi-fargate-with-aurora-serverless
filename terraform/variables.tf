@@ -1,4 +1,4 @@
-variable master_password {
-  type = string
+variable "master_password" {
+  type    = string
   default = "xxx"
 }
