@@ -1,8 +1,6 @@
 locals {
-  name = "strapi"
-  resource_ids = {
-
-  }
+  name   = "strapi"
+  region = "ap-northeast-1"
   ecr = {
     repository_name = local.name
   }
@@ -31,5 +29,9 @@ locals {
         }
       }
     }
+  }
+
+  logs = {
+    name = "/ecs/${local.name}"
   }
 }
