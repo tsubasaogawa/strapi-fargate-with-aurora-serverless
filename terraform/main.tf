@@ -113,7 +113,8 @@ resource "aws_security_group" "task" {
     from_port = 1337
     to_port   = 1337
     cidr_blocks = [
-      local.vpc.cidr_block
+      local.vpc.cidr_block,
+      "${chomp(data.http.ifconfig.body)}/32",
     ]
   }
 
@@ -127,6 +128,10 @@ resource "aws_security_group" "task" {
   tags = {
     Name = "${local.name}-task-security-group"
   }
+}
+
+data "http" "ifconfig" {
+  url = "https://ifconfig.io/ip"
 }
 
 resource "aws_db_subnet_group" "this" {
