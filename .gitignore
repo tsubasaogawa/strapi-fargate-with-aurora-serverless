@@ -1,2 +1,4 @@
 app/
 data/
+terraform/.terraform*
+terraform/terraform.tfstate*
