@@ -210,8 +210,26 @@ resource "aws_ecs_task_definition" "this" {
           containerPort = 1337
         }
       ]
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = local.logs.name
+          awslogs-region        = local.region
+          awslogs-stream-prefix = local.name
+        }
+      }
     }
   ])
+  lifecycle {
+    ignore_changes = [
+      container_definitions["environment"],
+    ]
+  }
+}
+
+resource "aws_cloudwatch_log_group" "this" {
+  name              = local.logs.name
+  retention_in_days = 30
 }
 
 data "aws_iam_policy_document" "task_execution" {
