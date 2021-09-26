@@ -98,6 +98,10 @@ resource "aws_security_group" "rds" {
     to_port     = 0
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "${local.name}-rds-security-group"
+  }
 }
 
 resource "aws_security_group" "task" {
@@ -118,6 +122,10 @@ resource "aws_security_group" "task" {
     from_port   = 0
     to_port     = 0
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${local.name}-task-security-group"
   }
 }
 
