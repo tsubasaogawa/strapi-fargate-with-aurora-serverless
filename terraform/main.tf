@@ -194,7 +194,7 @@ resource "aws_ecs_task_definition" "this" {
         },
         {
           name  = "DATABASE_HOST"
-          value = "mysql"
+          value = aws_rds_cluster.this.endpoint
         },
         {
           name  = "DATABASE_PORT"
