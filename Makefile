@@ -13,14 +13,11 @@ login:
 		--username AWS \
 		--password-stdin ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
 
-.PHONY: build
-build: ## fetch resources to build containers
-	make validate
-	make login
-
-	DOCKER_BUILDKIT=1 docker build \
-		-t ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/strapi:latest
-		.
+.PHONY: commit
+commit:
+	docker commit \
+		$(shell docker compose ps --format json | jq -r '.[] | if .Service == "strapi" then .ID else empty end') \
+		${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/strapi:latest
 
 .PHONY: push
 push:
