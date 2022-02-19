@@ -26,3 +26,15 @@ build: ## fetch resources to build containers
 push:
 	make login
 	docker push ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/strapi:latest
+
+.PHONY: run_task
+run_task:
+	aws ecs run-task \
+		--cluster ${CLUSTER_NAME} \
+		--task-definition ${TASK_DEFINITION} \
+		--count 1 \
+		--capacity-provider-strategy capacityProvider=FARGATE_SPOT,weight=1 \
+		--platform-version ${PLATFORM_VERSION} \
+		--network-configuration '${NETWORK_CONFIGURATION}' \
+		--started-by "make run_task" \
+		--region ${REGION}
