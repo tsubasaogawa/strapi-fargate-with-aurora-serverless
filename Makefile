@@ -1,5 +1,11 @@
-REGION := ap-northeast-1
-ACCOUNT_ID = $(shell aws sts get-caller-identity --output text | cut -f1)
+REGION := $(shell cd terraform && terraform output -raw region)
+ACCOUNT_ID := $(shell aws sts get-caller-identity --output text | cut -f1)
+CLUSTER_NAME := $(shell cd terraform && terraform output -raw ecs_cluster_name)
+TASK_DEFINITION := $(shell cd terraform && terraform output -raw task_definition_family)
+PLATFORM_VERSION := 1.4.0
+SUBNETS := $(shell cd terraform && terraform output -json subnet_ids | jq -c .public)
+SECURITY_GROUP := $(shell cd terraform && terraform output -json security_group_ids | jq -c .task)
+NETWORK_CONFIGURATION := {"awsvpcConfiguration": {"subnets": ${SUBNETS}, "securityGroups": [${SECURITY_GROUPS}], "assignPublicIp": "ENABLED"}}
 
 .PHONY: login
 login:
