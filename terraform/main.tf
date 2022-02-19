@@ -1,12 +1,4 @@
-resource "aws_ecr_repository" "this" {
-  name                 = local.ecr.repository_name
-  image_tag_mutability = "MUTABLE"
-
-  image_scanning_configuration {
-    scan_on_push = true
-  }
-}
-
+# Network
 resource "aws_vpc" "this" {
   cidr_block       = local.vpc.cidr_block
   instance_tenancy = "default"
@@ -84,11 +76,13 @@ resource "aws_security_group" "rds" {
   name   = "${local.name}-rds-security-group"
 
   ingress {
-    protocol  = "tcp"
-    from_port = 3306
-    to_port   = 3306
+    protocol    = "tcp"
+    from_port   = 3306
+    to_port     = 3306
+    description = "Inbound from local network and myip"
     cidr_blocks = [
-      local.vpc.cidr_block
+      local.vpc.cidr_block,
+      "${chomp(data.http.ifconfig.body)}/32",
     ]
   }
 
@@ -109,9 +103,10 @@ resource "aws_security_group" "task" {
   name   = "${local.name}-task-security-group"
 
   ingress {
-    protocol  = "tcp"
-    from_port = 1337
-    to_port   = 1337
+    protocol    = "tcp"
+    from_port   = 1337
+    to_port     = 1337
+    description = "Inbound from local network and myip"
     cidr_blocks = [
       local.vpc.cidr_block,
       "${chomp(data.http.ifconfig.body)}/32",
@@ -139,6 +134,7 @@ resource "aws_db_subnet_group" "this" {
   subnet_ids = values(aws_subnet.private)[*].id
 }
 
+# Aurora
 resource "aws_rds_cluster" "this" {
   cluster_identifier     = "cluster-${local.name}"
   engine_mode            = "serverless"
@@ -163,6 +159,16 @@ resource "aws_rds_cluster" "this" {
     ignore_changes = [
       master_password,
     ]
+  }
+}
+
+# ECS
+resource "aws_ecr_repository" "this" {
+  name                 = local.ecr.repository_name
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
   }
 }
 
@@ -243,6 +249,7 @@ resource "aws_cloudwatch_log_group" "this" {
   retention_in_days = 30
 }
 
+# IAM
 data "aws_iam_policy_document" "task_execution" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -257,7 +264,6 @@ data "aws_iam_policy_document" "task_execution" {
 }
 resource "aws_iam_role" "task_execution" {
   name = "${local.name}-task-execution-role"
-  # tags               = var.tags
   description        = "Execution role of ${local.name}'s task"
   assume_role_policy = data.aws_iam_policy_document.task_execution.json
 }

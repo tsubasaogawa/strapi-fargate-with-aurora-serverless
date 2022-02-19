@@ -3,7 +3,12 @@ terraform {
 }
 
 provider "aws" {
-  region = "ap-northeast-1"
+  region = local.region
+  default_tags {
+    tags = {
+      repository = "strapi-fargate-with-aurora-serverless"
+    }
+  }
 }
 
 provider "http" {
